@@ -1,0 +1,73 @@
+erDiagram
+    DEPARTMENTS ||--o{ USERS : "contains"
+    USERS ||--o{ USERS : "manages_N1"
+    USERS ||--o{ LEAVE_BALANCES : "owns"
+    LEAVE_TYPES ||--o{ LEAVE_BALANCES : "categorizes"
+    USERS ||--o{ LEAVE_REQUESTS : "submits"
+    LEAVE_TYPES ||--o{ LEAVE_REQUESTS : "defines"
+    LEAVE_REQUESTS ||--o| REPLACEMENTS : "requires"
+    USERS ||--o{ REPLACEMENTS : "assigned_as_substitute"
+    LEAVE_REQUESTS ||--o{ WORKFLOW_LOGS : "tracks"
+    USERS ||--o{ WORKFLOW_LOGS : "triggers"
+
+    DEPARTMENTS {
+        bigint id PK
+        string name
+    }
+
+    USERS {
+        bigint id PK
+        string name
+        string email
+        string password
+        bigint department_id FK
+        bigint manager_id FK
+        boolean is_formateur
+    }
+
+    LEAVE_TYPES {
+        bigint id PK
+        string name
+        float default_quota
+        boolean requires_attachment
+    }
+
+    LEAVE_BALANCES {
+        bigint id PK
+        bigint user_id FK
+        bigint leave_type_id FK
+        float total_quota
+        float used_quota
+        float remaining_quota
+        int year
+    }
+
+    LEAVE_REQUESTS {
+        bigint id PK
+        bigint user_id FK
+        bigint leave_type_id FK
+        date start_date
+        date end_date
+        enum duration_type
+        text reason
+        string attachment_path
+        enum status
+        text rejection_reason
+    }
+
+    REPLACEMENTS {
+        bigint id PK
+        bigint leave_request_id FK
+        bigint replacement_user_id FK
+        json rattrapage_dates
+        enum status
+    }
+
+    WORKFLOW_LOGS {
+        bigint id PK
+        bigint leave_request_id FK
+        bigint action_by_user_id FK
+        string action
+        text comment
+        timestamp created_at
+    }

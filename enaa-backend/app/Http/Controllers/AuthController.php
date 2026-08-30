@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
-use Illuminate\Auth\Events\Attempting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 

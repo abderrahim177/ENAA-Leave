@@ -13,20 +13,20 @@ Route::get('/user', function (Request $request) {
 Route::post('/login' , [AuthController::class , 'Login']);
 
 
-Route::middleware(['auth:sanctum', 'role:Admin RH'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin_rh'])->group(function () {
     // Route::post('/leave-types', [LeaveTypeController::class, 'store']);
     // Route::get('/export-paie', [LeaveRequestController::class, 'exportPaie']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 
 
-Route::middleware(['auth:sanctum', 'role:Manager'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:manager'])->group(function () {
     // Route::post('/leave-requests/{id}/validate-n1', [LeaveRequestController::class, 'validateN1']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 
 
-Route::middleware(['auth:sanctum', 'role:Formateur'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:formateur'])->group(function () {
     // Route::post('/leave-requests/submit', [LeaveRequestController::class, 'store']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });

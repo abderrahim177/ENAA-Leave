@@ -14,46 +14,47 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      const res = await axios.post('http://127.0.0.1:8000/api/login', {
-        email: formadata.email,
-        password: formadata.password
-      });
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/login', {
+      email: formadata.email,
+      password: formadata.password
+    });
 
-      const { user, access_token } = res.data;
+    const { user, access_token } = res.data;
 
-      if (access_token && user) {
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('user', JSON.stringify(user));
+    if (access_token && user) {
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
 
-        const userRole = user.role?.toLowerCase();
+      const userRole = user.role?.toLowerCase();
 
-        if (userRole === 'formateur') {
-          navigate('/formateur', { replace: true });
-        } else if (userRole === 'manager') {
-          navigate('/manager', { replace: true });
-        } else if (userRole === 'admin_rh') {
-          navigate('/Admin_RH', { replace: true });
-        } else {
-          setError('Réponse du serveur invalide (Rôle non reconnu).');
-        }
-      }
-    } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
+      if (userRole === 'formateur') {
+        navigate('/formateur', { replace: true });
+      } else if (userRole === 'manager') {
+        navigate('/manager', { replace: true });
+      } else if (userRole === 'admin_rh') {
+        navigate('/Admin_RH', { replace: true });
       } else {
-        setError('Invalid login credentials. Please check your information and try again.');
+        setError(`Réponse du serveur invalide (Rôle non reconnu: ${userRole}).`);
       }
-    } finally {
-      setLoading(false);
+    } else {
+      setError('Erreur: Token introvable');
     }
-  };
-
+  } catch (err) {
+    if (err.response && err.response.data && err.response.data.message) {
+      setError(err.response.data.message);
+    } else {
+      setError('Invalid login credentials. Please check your information and try again.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen w-full flex bg-slate-50 font-sans">
       

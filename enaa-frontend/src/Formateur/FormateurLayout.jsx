@@ -1,0 +1,145 @@
+import React, { useState } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Clock,
+  Send,
+  CalendarCheck,
+  History,
+  User,
+  LogOut,
+  Bell,
+  Menu,
+  X,
+  GraduationCap,
+} from "lucide-react";
+
+export default function FormateurLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const formateurInfo = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  const navItems = [
+    { name: "Mes Soldes de Congés", path: "/formateur/soldes", icon: Clock },
+    { name: "Nouvelle Demande", path: "/formateur/nouvelle-demande", icon: Send },
+    { name: "Mes Demandes", path: "/formateur/mes-demandes", icon: CalendarCheck },
+    { name: "Historique & Justificatifs", path: "/formateur/historique", icon: History },
+    { name: "Mon Profil", path: "/formateur/profil", icon: User },
+  ];
+
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 font-sans flex flex-col text-xs">
+      {/* Header */}
+      <header className="h-14 bg-white border-b border-slate-200 shrink-0 px-4 flex items-center justify-between shadow-sm z-30">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          <Link to="/formateur" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-violet-800 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-bold text-slate-900 tracking-tight">
+              ENAA<span className="text-violet-700">Staff</span>{" "}
+              <span className="text-[10px] text-slate-400 font-normal ml-1">
+                | Formateur Portal
+              </span>
+            </span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button className="relative p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-violet-500 rounded-full ring-2 ring-white" />
+          </button>
+          <div className="h-4 w-[1px] bg-slate-200" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-800 font-bold flex items-center justify-center border border-violet-200">
+              {formateurInfo.nom ? formateurInfo.nom[0] : "F"}
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="font-semibold text-slate-900 text-[11px]">
+                {formateurInfo.nom || "Formateur"}
+              </p>
+              <p className="text-[10px] text-slate-400">Enseignant / Formateur</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Body Container */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-slate-900/40 z-10 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside
+          className={`fixed md:static inset-y-0 left-0 z-20 w-60 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-transform duration-300 transform ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          } pt-14 md:pt-0 h-full`}
+        >
+          <div className="p-3 space-y-4 overflow-y-auto">
+            <nav className="space-y-1">
+              <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Espace Formateur
+              </p>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-3 py-2.5 rounded-xl font-medium transition-all ${
+                        isActive
+                          ? "bg-violet-800 text-white shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.name}</span>
+                    </div>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="p-3 border-t border-slate-100 shrink-0">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors font-medium text-xs"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Déconnexion</span>
+            </button>
+          </div>
+        </aside>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 h-full">
+          <div className="max-w-6xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -12,7 +12,7 @@ class LeaveRequestRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,8 +22,12 @@ class LeaveRequestRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            //
-        ];
+       return [
+        'type_conge'     => 'required|string',
+        'date_debut'     => 'required|date',
+        'date_fin'       => 'required|date|after_or_equal:date_debut',
+        'commentaire'    => 'nullable|string', 
+        'justificative'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', 
+    ];
     }
 }

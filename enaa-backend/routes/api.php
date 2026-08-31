@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GetlAllTypeLeaveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LeaveRequestController;
@@ -27,7 +28,8 @@ Route::middleware(['auth:sanctum', 'role:manager'])->group(function () {
 
 
 Route::middleware(['auth:sanctum', 'role:formateur'])->group(function () {
-    // Route::post('/leave-requests/submit', [LeaveRequestController::class, 'store']);
+    Route::post('/leave-requests/submit', [LeaveRequestController::class, 'store']);
+    Route::get('/GetAllleaveType' , [GetlAllTypeLeaveController::class , 'index']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 

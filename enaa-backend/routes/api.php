@@ -5,7 +5,6 @@ use App\Http\Controllers\GetlAllTypeLeaveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LeaveRequestController;
-use App\Http\Controllers\LeaveTypeController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -30,6 +29,8 @@ Route::middleware(['auth:sanctum', 'role:manager'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:formateur'])->group(function () {
     Route::post('/leave-requests/submit', [LeaveRequestController::class, 'store']);
     Route::get('/GetAllleaveType' , [GetlAllTypeLeaveController::class , 'index']);
+    Route::get('GetAllRequest' , [GetlAllTypeLeaveController::class , 'GetAllRequest']);
+    Route::get('/GetLeaveType' , [GetlAllTypeLeaveController::class , 'GetLeaveType']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 

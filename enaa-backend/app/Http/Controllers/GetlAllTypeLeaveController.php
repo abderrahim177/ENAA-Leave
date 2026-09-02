@@ -24,4 +24,5 @@ class GetlAllTypeLeaveController extends Controller
         $leaveType = LeaveType::all();
         return response()->json($leaveType , 200);
     }
+    
 }

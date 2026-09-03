@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DepartementsController;
+use App\Http\Controllers\FormateurController;
+use App\Http\Controllers\GestionCongésAdminController;
 use App\Http\Controllers\GetlAllTypeLeaveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +25,10 @@ Route::middleware(['auth:sanctum', 'role:admin_rh'])->group(function () {
     Route::get('/Getdepartments' , [DepartementsController::class , 'index']);
     Route::get('/Getmanager' , [ManagerController::class , 'index']);
     Route::post('/add_manager' , [ManagerController::class , 'store']);
+    Route::post('/add_formateur' , [FormateurController::class , 'store']);
+    Route::get('/Getformateur' , [FormateurController::class , 'index']);
+    Route::get('/GetConges' , [GestionCongésAdminController::class , 'index']);
+    Route::put('/updateRequestStatusAdmin/{id}', [GestionCongésAdminController::class, 'Update']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 

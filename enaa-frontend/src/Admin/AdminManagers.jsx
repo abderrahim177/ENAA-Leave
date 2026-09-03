@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, UserCheck, X, Loader2, User, Mail, Lock, Building } from 'lucide-react';
 import axios from 'axios';
-
+import { Pencil, Trash2 } from 'lucide-react';
 export default function AdminManagers() {
   const [managers, setManagers] = useState([]);
   const [depts, setDepts] = useState([]);
@@ -105,32 +105,57 @@ export default function AdminManagers() {
           Aucun manager trouvé.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {managers.map((m, idx) => {
-            const formateursCount = m.formateurs ? m.formateurs.length : 0;
-            const teamText = m.teamSize || `${formateursCount} Formateur${formateursCount > 1 ? 's' : ''}`;
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {managers.map((m, idx) => {
+    const formateursCount = m.formateurs ? m.formateurs.length : 0;
+    const teamText = m.teamSize || `${formateursCount} Formateur${formateursCount > 1 ? 's' : ''}`;
 
-            return (
-              <div key={m.id || idx} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 font-bold flex items-center justify-center uppercase text-sm">
-                    {m.name ? m.name[0] : 'M'}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 text-xs">{m.name}</h3>
-                    <p className="text-[11px] text-slate-400">{m.email}</p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>{m.department?.name || m.department || 'Département Général'}</span>
-                  <span className="font-bold text-indigo-900 bg-indigo-50 px-2.5 py-0.5 rounded-full text-[10px]">
-                    {teamText}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+    return (
+      <div key={m.id || idx} className="group bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 space-y-3 relative">
+        
+        {/* Header Container + Action Buttons */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 font-bold flex items-center justify-center uppercase text-sm shadow-inner">
+              {m.name ? m.name[0] : 'M'}
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900 text-xs">{m.name}</h3>
+              <p className="text-[11px] text-slate-400">{m.email}</p>
+            </div>
+          </div>
+
+          {/* Action Buttons (Edit & Delete) */}
+          <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => handleEdit(m)}
+              title="Modifier"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => handleDelete(m.id)}
+              title="Supprimer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
+
+        {/* Footer Info */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <span>{m.department?.name || m.department || 'Département Général'}</span>
+          <span className="font-bold text-indigo-900 bg-indigo-50 px-2.5 py-0.5 rounded-full text-[10px]">
+            {teamText}
+          </span>
+        </div>
+
+      </div>
+    );
+  })}
+</div>
       )}
 
       {/* Modal Ajout Manager */}

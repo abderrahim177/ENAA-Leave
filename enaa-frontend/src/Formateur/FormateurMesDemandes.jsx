@@ -43,7 +43,7 @@ export default function FormateurMesDemandes() {
         return { label: 'En attente RH', color: 'bg-blue-50 text-blue-600 border-blue-200' };
       case 'pending_manager':
       default:
-        return { label: 'En attente', color: 'bg-amber-50 text-amber-600 border-amber-200' };
+        return { label: 'pending_manager', color: 'bg-amber-50 text-amber-600 border-amber-200' };
     }
   };
 

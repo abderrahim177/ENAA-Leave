@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, X, Loader2, User, Mail, Lock, Building, UserCheck } from 'lucide-react';
+import { Plus, Search, X, Loader2, User, Mail, Lock, Building, UserCheck, Edit, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 export default function AdminFormateurs() {
   const [formateurs, setFormateurs] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [depts, setDepts] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+  
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedFormateurId, setSelectedFormateurId] = useState(null);
   const [error, setError] = useState('');
 
   // Form State
@@ -16,29 +21,38 @@ export default function AdminFormateurs() {
     name: '',
     email: '',
     password: '',
-    department: 'Informatique',
+    department_id: '',
     manager_id: ''
   });
 
   useEffect(() => {
-    fetchData();
+    fetchManagers();
+    fetchFormateur();
+    fetchDepartments();
   }, []);
 
-  const fetchData = async () => {
+  const fetchDepartments = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.get('http://127.0.0.1:8000/api/Getdepartments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setDepts(data);
+    } catch (err) {
+      console.error("Erreur chargement départements:", err);
+    }
+  };
+
+  const fetchFormateur = async () => {
     setLoading(true);
     const token = localStorage.getItem('token');
     try {
-      // 1. جلب قائمة الـ Formateurs
-      const formateursRes = await axios.get('http://127.0.0.1:8000/api/admin/formateurs', {
+      const res = await axios.get('http://127.0.0.1:8000/api/Getformateur', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setFormateurs(Array.isArray(formateursRes.data) ? formateursRes.data : formateursRes.data.data || []);
-
-      // 2. جلب قائمة الـ Managers لملء الـ Dropdown (اختياري)
-      const managersRes = await axios.get('http://127.0.0.1:8000/api/admin/managers', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setManagers(Array.isArray(managersRes.data) ? managersRes.data : managersRes.data.data || []);
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setFormateurs(data);
     } catch (err) {
       console.error("Erreur de chargement:", err);
     } finally {
@@ -46,6 +60,20 @@ export default function AdminFormateurs() {
     }
   };
 
+  const fetchManagers = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.get('http://127.0.0.1:8000/api/Getmanager', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setManagers(data);
+    } catch (err) {
+      console.error("Erreur de chargement managers:", err);
+    }
+  };
+
+  // Create Formateur
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -53,16 +81,16 @@ export default function AdminFormateurs() {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/admin/add-formateur', {
+      await axios.post('http://127.0.0.1:8000/api/add_formateur', {
         ...formData,
         role: 'formateur'
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setFormateurs([response.data.user || response.data, ...formateurs]);
+      await fetchFormateur();
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '', department: 'Informatique', manager_id: '' });
+      setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de la création du compte.");
     } finally {
@@ -70,9 +98,63 @@ export default function AdminFormateurs() {
     }
   };
 
+  // Open Edit Modal & Populate Form
+  const handleEditClick = (formateur) => {
+    setSelectedFormateurId(formateur.id);
+    setFormData({
+      name: formateur.name || '',
+      email: formateur.email || '',
+      password: '', 
+      department_id: formateur.department_id || formateur.department?.id || '',
+      manager_id: formateur.manager_id || formateur.manager?.id || ''
+    });
+    setError('');
+    setIsEditModalOpen(true);
+  };
+
+  // Update Formateur
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+    const token = localStorage.getItem('token');
+
+    try {
+      await axios.put(`http://127.0.0.1:8000/api/update_formateur/${selectedFormateurId}`, formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      await fetchFormateur();
+      setIsEditModalOpen(false);
+      setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur lors de la modification.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete Formateur
+  const handleDelete = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce formateur ?")) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/delete_formateur/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFormateurs(formateurs.filter(f => f.id !== id));
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      alert(err.response?.data?.message || "Impossible de supprimer ce formateur.");
+    }
+  };
+
   const filteredFormateurs = formateurs.filter(f => 
     f.name?.toLowerCase().includes(search.toLowerCase()) ||
-    f.email?.toLowerCase().includes(search.toLowerCase())
+    f.email?.toLowerCase().includes(search.toLowerCase()) ||
+    f.department?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    f.manager?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -84,7 +166,11 @@ export default function AdminFormateurs() {
           <p className="text-xs text-slate-500">Liste des enseignants et gestion de leurs comptes.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
+            setError('');
+            setIsModalOpen(true);
+          }}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl font-semibold text-xs shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Nouveau Formateur
@@ -99,7 +185,7 @@ export default function AdminFormateurs() {
             type="text" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un formateur..." 
+            placeholder="Rechercher par nom, email, département ou manager..." 
             className="bg-transparent border-none outline-none text-xs w-full text-slate-700" 
           />
         </div>
@@ -111,35 +197,87 @@ export default function AdminFormateurs() {
         ) : filteredFormateurs.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-xs">Aucun formateur trouvé.</div>
         ) : (
-          <div className="divide-y divide-slate-100">
-            {filteredFormateurs.map((f, idx) => (
-              <div key={f.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-900 font-bold flex items-center justify-center text-xs uppercase">
-                    {f.name ? f.name[0] : 'F'}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-xs">{f.name}</p>
-                    <p className="text-slate-400 text-[10px] flex items-center gap-2">
-                      <span>{f.email}</span> • <span>{f.department || 'Informatique'}</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">
-                  Actif
-                </span>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">Formateur</th>
+                  <th className="py-3 px-4">Département</th>
+                  <th className="py-3 px-4">Manager Responsable</th>
+                  <th className="py-3 px-4">Statut</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {filteredFormateurs.map((f, idx) => (
+                  <tr key={f.id || idx} className="hover:bg-slate-50/50 transition">
+                    {/* User Info */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-900 font-bold flex items-center justify-center text-xs uppercase flex-shrink-0">
+                          {f.name ? f.name[0] : 'F'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">{f.name}</p>
+                          <p className="text-slate-400 text-[11px]">{f.email}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Department */}
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
+                        {f.department?.name || f.department_name || (typeof f.department === 'string' ? f.department : 'Non assigné')}
+                      </span>
+                    </td>
+
+                    {/* Manager */}
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1.5 text-slate-600 text-[11px] font-medium">
+                        <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        {f.manager?.name || f.manager_name || 'Aucun manager'}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3 px-4">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 inline-block">
+                        Actif
+                      </span>
+                    </td>
+
+                    {/* Actions Column */}
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditClick(f)}
+                          className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                          title="Modifier"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(f.id)}
+                          className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Modern & Clean Modal */}
+      {/* Modal - Add Formateur */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-            
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-800 text-sm">Ajouter un nouveau Formateur</h3>
               <button 
@@ -150,7 +288,6 @@ export default function AdminFormateurs() {
               </button>
             </div>
 
-            {/* Modal Body / Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs">
@@ -158,7 +295,6 @@ export default function AdminFormateurs() {
                 </div>
               )}
 
-              {/* Name Input */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Nom Complet</label>
                 <div className="relative flex items-center">
@@ -174,7 +310,6 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              {/* Email Input */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Adresse Email</label>
                 <div className="relative flex items-center">
@@ -190,7 +325,6 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              {/* Password Input */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Mot de passe</label>
                 <div className="relative flex items-center">
@@ -206,34 +340,36 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              {/* Department Input */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Département</label>
                 <div className="relative flex items-center">
-                  <Building className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Building className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                   <select 
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    required
+                    value={formData.department_id}
+                    onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
                   >
-                    <option value="Informatique">Informatique</option>
-                    <option value="Design / Digital">Design / Digital</option>
-                    <option value="Gestion / Commerce">Gestion / Commerce</option>
+                    <option value="">Sélectionner un département</option>
+                    {depts.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              {/* Manager Selection (Optional) */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">
                   Manager Responsable <span className="text-slate-400 font-normal">(Optionnel)</span>
                 </label>
                 <div className="relative flex items-center">
-                  <UserCheck className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <UserCheck className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                   <select 
                     value={formData.manager_id}
                     onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
                   >
                     <option value="">Aucun manager (Assigner plus tard)</option>
                     {managers.map((m) => (
@@ -243,7 +379,6 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
               <div className="pt-3 flex items-center justify-end gap-2">
                 <button 
                   type="button" 
@@ -261,7 +396,129 @@ export default function AdminFormateurs() {
                   Créer le compte
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
+      {/* Modal - Edit Formateur */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-bold text-slate-800 text-sm">Modifier le Formateur</h3>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="p-6 space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Nom Complet</label>
+                <div className="relative flex items-center">
+                  <User className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Adresse Email</label>
+                <div className="relative flex items-center">
+                  <Mail className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">
+                  Nouveau Mot de passe <span className="text-slate-400 font-normal">(Laisser vide si inchangé)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Département</label>
+                <div className="relative flex items-center">
+                  <Building className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+                  <select 
+                    value={formData.department_id}
+                    onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
+                  >
+                    <option value="">Sélectionner un département</option>
+                    {depts.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">
+                  Manager Responsable <span className="text-slate-400 font-normal">(Optionnel)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <UserCheck className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+                  <select 
+                    value={formData.manager_id}
+                    onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
+                  >
+                    <option value="">Aucun manager</option>
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Enregistrer les modifications
+                </button>
+              </div>
             </form>
           </div>
         </div>

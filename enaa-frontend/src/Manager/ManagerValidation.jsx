@@ -118,7 +118,7 @@ export default function ManagerValidation() {
                     </button>
                     <button
                       disabled={actionLoading === req.id}
-                      onClick={() => handleStatusChange(req.id, 'approved')}
+                      onClick={() => handleStatusChange(req.id, 'pending_manager')}
                       className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-colors text-xs disabled:opacity-50"
                     >
                       {actionLoading === req.id ? (

@@ -8,10 +8,10 @@ export default function AdminConges() {
   const [data, setData] = useState([]);
   const [actionLoading, setActionLoading] = useState(null);
 
-  // State للتحكم فـ الـ Modal ديال Refuser
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectError, setRejectError] = useState(''); 
 
   useEffect(() => {
     handelFetchData();
@@ -43,8 +43,7 @@ export default function AdminConges() {
     }
   };
 
-
-  const handleStatusChange = async (requestId, status) => {
+  const handleStatusChange = async (requestId) => {
     setActionLoading(requestId);
     const token = localStorage.getItem('token');
     try {
@@ -60,10 +59,10 @@ export default function AdminConges() {
       );
       setData((prevData) => prevData.filter((req) => req.id !== requestId));
     } catch (err) {
-  console.error(err.response?.data);
-  const debugMsg = err.response?.data?.debug_error || err.response?.data?.message;
-  alert(debugMsg || "Erreur lors de la mise à jour du statut.");
-} finally {
+      console.error(err.response?.data);
+      const debugMsg = err.response?.data?.debug_error || err.response?.data?.message;
+      alert(debugMsg || "Erreur lors de la mise à jour du statut.");
+    } finally {
       setActionLoading(null);
     }
   };
@@ -71,12 +70,20 @@ export default function AdminConges() {
   const openRejectModal = (requestId) => {
     setSelectedRequestId(requestId);
     setRejectReason('');
+    setRejectError(''); 
     setShowRejectModal(true);
+  };
+
+  const handleRejectReasonChange = (e) => {
+    setRejectReason(e.target.value);
+    if (e.target.value.trim()) {
+      setRejectError(''); 
+    }
   };
 
   const handleConfirmReject = async () => {
     if (!rejectReason.trim()) {
-      alert("Veuillez indiquer la raison du refus.");
+      setRejectError('Veuillez saisir un motif de refus avant de confirmer.');
       return;
     }
 
@@ -105,11 +112,13 @@ export default function AdminConges() {
       setShowRejectModal(false);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Erreur lors du refus de la demande.");
+      setRejectError(err.response?.data?.message || "Erreur lors du refus de la demande.");
     } finally {
       setActionLoading(null);
     }
   };
+
+  const isRejectDisabled = !rejectReason.trim() || actionLoading !== null;
 
   return (
     <div className="space-y-6 relative">
@@ -165,36 +174,55 @@ export default function AdminConges() {
 
       {/* --- MODAL DIAL REFUSER --- */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 border border-slate-100">
             <div className="flex items-center gap-2 text-rose-600">
-              <AlertCircle className="w-5 h-5" />
-              <h3 className="font-semibold text-sm">Refuser la demande</h3>
+              <div className="p-2 bg-rose-50 rounded-xl">
+                <AlertCircle className="w-5 h-5 text-rose-600" />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-900">Refuser la demande</h3>
             </div>
             
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 leading-relaxed">
               Veuillez indiquer la raison du refus. Cette remarque sera transmise au demandeur.
             </p>
 
-            <textarea
-              rows="3"
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Ex: Période de forte activité..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
-            ></textarea>
+            <div className="space-y-1.5">
+              <textarea
+                rows="3"
+                value={rejectReason}
+                onChange={handleRejectReasonChange}
+                placeholder="Ex: Période de forte activité, manque d'effectif..."
+                className={`w-full text-xs p-3 rounded-xl border transition-all duration-200 resize-none outline-none ${
+                  rejectError 
+                    ? 'border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100' 
+                    : 'border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50'
+                }`}
+              ></textarea>
 
-            <div className="flex justify-end gap-2 pt-2">
+              {rejectError && (
+                <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium animate-shake">
+                  <AlertCircle className="w-3 h-3" /> {rejectError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200"
+                className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition-colors"
               >
                 Annuler
               </button>
+              
               <button
                 onClick={handleConfirmReject}
-                disabled={actionLoading !== null}
-                className="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 disabled:opacity-50"
+                disabled={isRejectDisabled}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                  isRejectDisabled 
+                    ? 'bg-rose-200 text-white cursor-not-allowed opacity-60 shadow-none' 
+                    : 'bg-rose-600 text-white hover:bg-rose-700 shadow-md shadow-rose-200 active:scale-95'
+                }`}
               >
                 Confirmer le refus
               </button>

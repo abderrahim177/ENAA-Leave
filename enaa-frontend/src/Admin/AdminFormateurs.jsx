@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, X, Loader2, User, Mail, Lock, Building, UserCheck, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, X, Loader2, User, Mail, Lock, Building, UserCheck, Edit, Trash2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
 export default function AdminFormateurs() {
@@ -24,6 +24,9 @@ export default function AdminFormateurs() {
     department_id: '',
     manager_id: ''
   });
+
+  // Validation Errors State
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     fetchManagers();
@@ -73,9 +76,65 @@ export default function AdminFormateurs() {
     }
   };
 
+  // Helper handling input changes & validation reset
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Validate Add Form
+  const validateAddForm = () => {
+    const errors = {};
+    if (!formData.name.trim()) {
+      errors.name = "Le nom complet est obligatoire.";
+    }
+    if (!formData.email.trim()) {
+      errors.email = "L'adresse email est obligatoire.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Veuillez entrer un email valide.";
+    }
+    if (!formData.password) {
+      errors.password = "Le mot de passe est obligatoire.";
+    } else if (formData.password.length < 8) {
+      errors.password = "Le mot de passe doit contenir au moins 8 caractères.";
+    }
+    if (!formData.department_id) {
+      errors.department_id = "Veuillez sélectionner un département.";
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Validate Edit Form
+  const validateEditForm = () => {
+    const errors = {};
+    if (!formData.name.trim()) {
+      errors.name = "Le nom complet est obligatoire.";
+    }
+    if (!formData.email.trim()) {
+      errors.email = "L'adresse email est obligatoire.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Veuillez entrer un email valide.";
+    }
+    if (formData.password && formData.password.length < 8) {
+      errors.password = "Le mot de passe doit contenir au moins 8 caractères.";
+    }
+    if (!formData.department_id) {
+      errors.department_id = "Veuillez sélectionner un département.";
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Create Formateur
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAddForm()) return;
+
     setSubmitting(true);
     setError('');
     const token = localStorage.getItem('token');
@@ -91,6 +150,7 @@ export default function AdminFormateurs() {
       await fetchFormateur();
       setIsModalOpen(false);
       setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
+      setFieldErrors({});
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de la création du compte.");
     } finally {
@@ -109,12 +169,15 @@ export default function AdminFormateurs() {
       manager_id: formateur.manager_id || formateur.manager?.id || ''
     });
     setError('');
+    setFieldErrors({});
     setIsEditModalOpen(true);
   };
 
   // Update Formateur
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (!validateEditForm()) return;
+
     setSubmitting(true);
     setError('');
     const token = localStorage.getItem('token');
@@ -127,6 +190,7 @@ export default function AdminFormateurs() {
       await fetchFormateur();
       setIsEditModalOpen(false);
       setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
+      setFieldErrors({});
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de la modification.");
     } finally {
@@ -157,6 +221,9 @@ export default function AdminFormateurs() {
     f.manager?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const isAddSubmitDisabled = !formData.name.trim() || !formData.email.trim() || !formData.password || !formData.department_id || submitting;
+  const isEditSubmitDisabled = !formData.name.trim() || !formData.email.trim() || !formData.department_id || submitting;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -169,6 +236,7 @@ export default function AdminFormateurs() {
           onClick={() => {
             setFormData({ name: '', email: '', password: '', department_id: '', manager_id: '' });
             setError('');
+            setFieldErrors({});
             setIsModalOpen(true);
           }}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl font-semibold text-xs shadow-sm transition-all"
@@ -288,67 +356,98 @@ export default function AdminFormateurs() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
               {error && (
                 <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs">
                   {error}
                 </div>
               )}
 
+              {/* Nom Complet */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Nom Complet</label>
                 <div className="relative flex items-center">
-                  <User className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <User className={`w-4 h-4 absolute left-3 ${fieldErrors.name ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="text" 
-                    required
                     placeholder="ex: Youssef Benali"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.name
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.name && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
+              {/* Email */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Adresse Email</label>
                 <div className="relative flex items-center">
-                  <Mail className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Mail className={`w-4 h-4 absolute left-3 ${fieldErrors.email ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="email" 
-                    required
                     placeholder="y.benali@enaa.ma"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.email
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
+              {/* Password */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Mot de passe</label>
                 <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Lock className={`w-4 h-4 absolute left-3 ${fieldErrors.password ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="password" 
-                    required
                     placeholder="••••••••"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.password
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
+              {/* Department */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Département</label>
                 <div className="relative flex items-center">
-                  <Building className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+                  <Building className={`w-4 h-4 absolute left-3 pointer-events-none ${fieldErrors.department_id ? 'text-rose-400' : 'text-slate-400'}`} />
                   <select 
-                    required
                     value={formData.department_id}
-                    onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
+                    onChange={(e) => handleInputChange('department_id', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition text-slate-700 ${
+                      fieldErrors.department_id
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   >
                     <option value="">Sélectionner un département</option>
                     {depts.map((item) => (
@@ -358,8 +457,14 @@ export default function AdminFormateurs() {
                     ))}
                   </select>
                 </div>
+                {fieldErrors.department_id && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.department_id}
+                  </p>
+                )}
               </div>
 
+              {/* Manager Responsable */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">
                   Manager Responsable <span className="text-slate-400 font-normal">(Optionnel)</span>
@@ -368,7 +473,7 @@ export default function AdminFormateurs() {
                   <UserCheck className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                   <select 
                     value={formData.manager_id}
-                    onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                    onChange={(e) => handleInputChange('manager_id', e.target.value)}
                     className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
                   >
                     <option value="">Aucun manager (Assigner plus tard)</option>
@@ -379,7 +484,8 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              {/* Actions */}
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
@@ -389,8 +495,12 @@ export default function AdminFormateurs() {
                 </button>
                 <button 
                   type="submit" 
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                  disabled={isAddSubmitDisabled}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    isAddSubmitDisabled
+                      ? "bg-indigo-300 text-white cursor-not-allowed opacity-60 shadow-none"
+                      : "bg-indigo-900 hover:bg-indigo-950 text-white shadow-sm active:scale-95"
+                  }`}
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Créer le compte
@@ -415,63 +525,98 @@ export default function AdminFormateurs() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="p-6 space-y-4">
+            <form onSubmit={handleUpdate} className="p-6 space-y-4" noValidate>
               {error && (
                 <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs">
                   {error}
                 </div>
               )}
 
+              {/* Nom Complet */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Nom Complet</label>
                 <div className="relative flex items-center">
-                  <User className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <User className={`w-4 h-4 absolute left-3 ${fieldErrors.name ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="text" 
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.name
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.name && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
+              {/* Email */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Adresse Email</label>
                 <div className="relative flex items-center">
-                  <Mail className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Mail className={`w-4 h-4 absolute left-3 ${fieldErrors.email ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="email" 
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.email
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
+              {/* Password */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">
                   Nouveau Mot de passe <span className="text-slate-400 font-normal">(Laisser vide si inchangé)</span>
                 </label>
                 <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Lock className={`w-4 h-4 absolute left-3 ${fieldErrors.password ? 'text-rose-400' : 'text-slate-400'}`} />
                   <input 
                     type="password" 
                     placeholder="••••••••"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition ${
+                      fieldErrors.password
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   />
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
+              {/* Department */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">Département</label>
                 <div className="relative flex items-center">
-                  <Building className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+                  <Building className={`w-4 h-4 absolute left-3 pointer-events-none ${fieldErrors.department_id ? 'text-rose-400' : 'text-slate-400'}`} />
                   <select 
                     value={formData.department_id}
-                    onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
+                    onChange={(e) => handleInputChange('department_id', e.target.value)}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition text-slate-700 ${
+                      fieldErrors.department_id
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white"
+                    }`}
                   >
                     <option value="">Sélectionner un département</option>
                     {depts.map((item) => (
@@ -481,8 +626,14 @@ export default function AdminFormateurs() {
                     ))}
                   </select>
                 </div>
+                {fieldErrors.department_id && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.department_id}
+                  </p>
+                )}
               </div>
 
+              {/* Manager Responsable */}
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700">
                   Manager Responsable <span className="text-slate-400 font-normal">(Optionnel)</span>
@@ -491,7 +642,7 @@ export default function AdminFormateurs() {
                   <UserCheck className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                   <select 
                     value={formData.manager_id}
-                    onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                    onChange={(e) => handleInputChange('manager_id', e.target.value)}
                     className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition text-slate-700"
                   >
                     <option value="">Aucun manager</option>
@@ -502,7 +653,8 @@ export default function AdminFormateurs() {
                 </div>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              {/* Actions */}
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button 
                   type="button" 
                   onClick={() => setIsEditModalOpen(false)}
@@ -512,8 +664,12 @@ export default function AdminFormateurs() {
                 </button>
                 <button 
                   type="submit" 
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                  disabled={isEditSubmitDisabled}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    isEditSubmitDisabled
+                      ? "bg-indigo-300 text-white cursor-not-allowed opacity-60 shadow-none"
+                      : "bg-indigo-900 hover:bg-indigo-950 text-white shadow-sm active:scale-95"
+                  }`}
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Enregistrer les modifications

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Building2, Plus, X, Loader2 } from "lucide-react";
+import { Building2, Plus, X, Loader2, AlertCircle } from "lucide-react";
 import axios from "axios";
 
 export default function AdminDepartements() {
@@ -8,6 +8,7 @@ export default function AdminDepartements() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState(""); 
   const [formData, setFormData] = useState({
     name: "",
   });
@@ -31,10 +32,32 @@ export default function AdminDepartements() {
     }
   };
 
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setFormData({ name: value });
+    if (value.trim()) {
+      setFieldError(""); 
+    }
+  };
+
+  const handleOpenModal = () => {
+    setError("");
+    setFieldError("");
+    setFormData({ name: "" });
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      setFieldError("Le nom du département est obligatoire.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
+    setFieldError("");
     const token = localStorage.getItem("token");
 
     try {
@@ -43,7 +66,7 @@ export default function AdminDepartements() {
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
-        },
+        }
       );
 
       const newDept = response.data.department || response.data;
@@ -54,12 +77,14 @@ export default function AdminDepartements() {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Erreur lors de la création du département.",
+          "Erreur lors de la création du département."
       );
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isSubmitDisabled = !formData.name.trim() || submitting;
 
   return (
     <div className="space-y-6">
@@ -74,51 +99,56 @@ export default function AdminDepartements() {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenModal}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl font-semibold text-xs shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Nouveau Département
         </button>
       </div>
+
       {loading ? (
-  <div className="p-12 text-center text-slate-400 text-xs flex justify-center items-center gap-2">
-    <Loader2 className="w-4 h-4 animate-spin" /> Chargement des départements...
-  </div>
-) : depts.length === 0 ? (
-  <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 text-slate-400 text-xs">
-    Aucun département trouvé.
-  </div>
-) : (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {depts.map((d, idx) => {
-      const manager = d.users?.find(u => u.role === 'manager');
-
-      const formateursCount = d.users?.filter(u => u.role === 'formateur').length || 0;
-
-      return (
-        <div key={d.id || idx} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-          <div className="p-2.5 bg-indigo-50 text-indigo-900 rounded-xl w-fit">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-xs">{d.name}</h3>
-            <p className="text-slate-400 text-[10px] mt-1">
-              Chef: <span className="text-slate-700 font-medium">
-                {manager ? manager.name : 'Non assigné'}
-              </span>
-            </p>
-          </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-            <span>Effectif:</span>
-            <span className="font-bold text-slate-800">
-              {formateursCount} Formateur(s)
-            </span>
-          </div>
+        <div className="p-12 text-center text-slate-400 text-xs flex justify-center items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Chargement des départements...
         </div>
-      );
-    })}
-  </div>
-)}
+      ) : depts.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 text-slate-400 text-xs">
+          Aucun département trouvé.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {depts.map((d, idx) => {
+            const manager = d.users?.find((u) => u.role === "manager");
+            const formateursCount =
+              d.users?.filter((u) => u.role === "formateur").length || 0;
+
+            return (
+              <div
+                key={d.id || idx}
+                className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3"
+              >
+                <div className="p-2.5 bg-indigo-50 text-indigo-900 rounded-xl w-fit">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-xs">{d.name}</h3>
+                  <p className="text-slate-400 text-[10px] mt-1">
+                    Chef:{" "}
+                    <span className="text-slate-700 font-medium">
+                      {manager ? manager.name : "Non assigné"}
+                    </span>
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                  <span>Effectif:</span>
+                  <span className="font-bold text-slate-800">
+                    {formateursCount} Formateur(s)
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal Ajout Département */}
       {isModalOpen && (
@@ -145,37 +175,56 @@ export default function AdminDepartements() {
                 </div>
               )}
 
-              {/* Department Name Only */}
-              <div className="space-y-1">
+              {/* Department Name Input with Modern Validation */}
+              <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold text-slate-700">
                   Nom du Département
                 </label>
                 <div className="relative flex items-center">
-                  <Building2 className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <Building2
+                    className={`w-4 h-4 absolute left-3 transition-colors ${
+                      fieldError ? "text-rose-400" : "text-slate-400"
+                    }`}
+                  />
                   <input
                     type="text"
-                    required
                     placeholder="ex: Département Intelligence Artificielle"
                     value={formData.name}
-                    onChange={(e) => setFormData({ name: e.target.value })}
-                    className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+                    onChange={handleInputChange}
+                    className={`w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border rounded-xl outline-none transition-all duration-200 ${
+                      fieldError
+                        ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-50"
+                    }`}
                   />
                 </div>
+
+                {/*  Inline Error Message */}
+                {fieldError && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium pt-0.5 animate-shake">
+                    <AlertCircle className="w-3 h-3" /> {fieldError}
+                  </p>
+                )}
               </div>
 
               {/* Modal Actions */}
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
                 >
                   Annuler
                 </button>
+
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                  disabled={isSubmitDisabled}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    isSubmitDisabled
+                      ? "bg-indigo-300 text-white cursor-not-allowed opacity-60 shadow-none"
+                      : "bg-indigo-900 hover:bg-indigo-950 text-white shadow-sm active:scale-95"
+                  }`}
                 >
                   {submitting && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

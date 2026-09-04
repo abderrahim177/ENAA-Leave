@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\Hash;
 class ManagerController extends Controller
 {
     public function index(Request $request){
-        $Managers = User::with('department')->where('role' , 'manager')->get();
+        $Managers = User::with('department')
+        ->where('role' , 'manager')
+        ->withCount('formateurs')
+        ->get();
         return response()->json($Managers , 200);
     }
     public function store(ManagerRequest $request){
@@ -28,7 +31,7 @@ class ManagerController extends Controller
             'status' => 'success',
             'message' => 'manager Created seccussfuly !',
         ], 201);
-        
+
         }catch (\Exception $e) {
             return response()->json([
                 'error_details' => $e->getMessage(),
@@ -36,6 +39,9 @@ class ManagerController extends Controller
                 'file'          => $e->getFile()
             ], 500);
         }
+        
+    }
+    public function GetFormateurs(Request $request){
         
     }
 }

@@ -9,7 +9,8 @@ class RequestManagerController extends Controller
 {
     public function getAllRequestsForAdmin()
     {
-        $requests = LeaveRequest::with(['leaveType', 'user'])->get();
+        $requests = LeaveRequest::with(['leaveType', 'user'])->where('status' , 'pending_hr')->get();
         return response()->json($requests, 200);
     }
+    
 }

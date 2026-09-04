@@ -26,7 +26,12 @@ export default function ManagerValidation() {
       });
 
       const resultData = Array.isArray(response.data) ? response.data : response.data.data || [];
-      setdata(resultData);
+      
+      const pendingRequests = resultData.filter(
+        (req) => req.status === 'pending' || req.status === 'pending_admin' || req.status === 'pending_manager'
+      );
+      
+      setdata(pendingRequests);
     } catch (err) {
       console.error("Error status:", err.response?.status, err.response?.data);
       seterror(err.response?.data?.message || "Impossible de charger les demandes.");
@@ -46,9 +51,12 @@ export default function ManagerValidation() {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
+            'Content-Type': 'application/json',
           },
         }
       );
+
+      // مسح الطلب مباشرة من الـ state بعد القبول أو الرفض
       setdata((prevData) => prevData.filter((req) => req.id !== requestId));
     } catch (err) {
       alert(err.response?.data?.message || "Erreur lors de la mise à jour du statut.");
@@ -118,7 +126,7 @@ export default function ManagerValidation() {
                     </button>
                     <button
                       disabled={actionLoading === req.id}
-                      onClick={() => handleStatusChange(req.id, 'pending_manager')}
+                      onClick={() => handleStatusChange(req.id, 'approved')}
                       className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-colors text-xs disabled:opacity-50"
                     >
                       {actionLoading === req.id ? (

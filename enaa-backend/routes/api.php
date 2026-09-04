@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', 'role:admin_rh'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:manager'])->group(function () {
     Route::put('/updateRequestStatus/{id}', [LeaveRequestController::class, 'Update']);
     Route::get('getAllRequestsForAdmin' , [RequestManagerController::class , 'getAllRequestsForAdmin']);
+    Route::get('/MonEquipe' , [ManagerController::class , 'MonEquipe']);
     Route::post('/Logout' , [AuthController::class , 'Logout']);
 });
 

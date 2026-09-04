@@ -10,7 +10,7 @@ class GestionCongésAdminController extends Controller
 {
     public function index(Request $request)
     {
-        $Conges = LeaveRequest::with('user')->where('status', 'pending_manager')->get();
+        $Conges = LeaveRequest::with('user')->where('status', 'pending_hr')->get();
         return response()->json($Conges, 200);
     }
 

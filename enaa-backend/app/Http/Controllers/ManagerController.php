@@ -41,7 +41,13 @@ class ManagerController extends Controller
         }
         
     }
-    public function GetFormateurs(Request $request){
-        
+    public function MonEquipe(Request $request)
+    {
+    $managerId = $request->user()->id;
+    $equipe = User::where('manager_id', $managerId)
+        ->where('role', 'formateur')
+        ->get();
+
+    return response()->json($equipe, 200);
     }
 }

@@ -21,9 +21,13 @@ class DepartementsController extends Controller
             'department' => $department
         ], 201);
     }
-    public function index(Request $request){
-        $departements = Department::all();
-        return response()->json($departements , 200);
-    }
-    
+    public function index(Request $request)
+{
+    $departements = Department::with(['users' => function($query) {
+        $query->select('id', 'name', 'email', 'role', 'department_id');
+    }])->withCount('users')->get();
+
+    return response()->json($departements, 200);
+}
+
 }

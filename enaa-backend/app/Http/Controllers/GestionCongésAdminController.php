@@ -3,22 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
-use App\Http\Requests\GestionCongésAdminRequest; // 1. أضف هذا السطر هنا
+use App\Http\Requests\GestionCongésAdminRequest;
 use Illuminate\Http\Request;
 
 class GestionCongésAdminController extends Controller
 {
-    public function index(Request $request){
-        $Conges = LeaveRequest::with('user')->where('status' , 'pending_manager')->get();
-        return response()->json($Conges , 200);
+    public function index(Request $request)
+    {
+        $Conges = LeaveRequest::with('user')->where('status', 'pending_manager')->get();
+        return response()->json($Conges, 200);
     }
 
-    // 2. غير نوع $request لـ GestionCongésAdminRequest
-    public function Update(GestionCongésAdminRequest $request, $id){ 
-        
+    public function Update(GestionCongésAdminRequest $request, $id)
+    {
         try {
             $validated = $request->validated();
-
             $leaveRequest = LeaveRequest::find($id);
 
             if (!$leaveRequest) {
@@ -29,15 +28,15 @@ class GestionCongésAdminController extends Controller
 
             $leaveRequest->status = $validated['status'];
 
-            if (isset($validated['rejection_reason'])) {
+            if (array_key_exists('rejection_reason', $validated)) {
                 $leaveRequest->rejection_reason = $validated['rejection_reason'];
             }
 
             $leaveRequest->save();
 
             return response()->json([
-                'message' => 'Statut de la demande mis à jour avec succès.',
-                'data' => $leaveRequest
+                'message' => 'Demande refusée et mise à jour avec succès.',
+                'data'    => $leaveRequest
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

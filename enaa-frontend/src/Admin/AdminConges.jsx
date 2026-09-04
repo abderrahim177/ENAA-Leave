@@ -101,6 +101,7 @@ export default function AdminConges() {
       );
 
       setData((prevData) => prevData.filter((req) => req.id !== selectedRequestId));
+      setRejectReason('');
       setShowRejectModal(false);
     } catch (err) {
       console.error(err);
